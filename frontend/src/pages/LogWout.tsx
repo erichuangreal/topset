@@ -1,6 +1,8 @@
+// src/pages/LogWout.tsx
 import React, { useMemo, useState } from "react";
 
 type SetRow = { weight: string; reps: string };
+type LoggedExercise = { id: string; name: string; sets: SetRow[] };
 
 const EXERCISE_LIBRARY = [
     "Bench Press",
@@ -21,11 +23,7 @@ export default function LogWout() {
     const [sets, setSets] = useState<SetRow[]>([{ weight: "", reps: "" }]);
 
     // exercise log (completed list)
-    const [log, setLog] = useState<{ id: string; name: string; sets: SetRow[] }[]>(
-        []
-    );
-
-    const canRemoveSet = sets.length > 1;
+    const [log, setLog] = useState<LoggedExercise[]>([]);
 
     const currentVolume = useMemo(() => {
         let v = 0;
@@ -41,9 +39,8 @@ export default function LogWout() {
         setSets((prev) => [...prev, { weight: "", reps: "" }]);
     }
 
-    function removeSet() {
-        if (!canRemoveSet) return;
-        setSets((prev) => prev.slice(0, -1));
+    function removeSetAt(idx: number) {
+        setSets((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
     }
 
     function updateSet(idx: number, patch: Partial<SetRow>) {
@@ -52,6 +49,7 @@ export default function LogWout() {
 
     function addExerciseToLog() {
         const name = currentExercise.trim();
+
         const cleanedSets = sets
             .map((s) => ({ weight: s.weight.trim(), reps: s.reps.trim() }))
             .filter((s) => s.weight !== "" || s.reps !== "");
@@ -70,6 +68,10 @@ export default function LogWout() {
         // reset for next exercise
         setCurrentExercise("");
         setSets([{ weight: "", reps: "" }]);
+    }
+
+    function removeLoggedExercise(id: string) {
+        setLog((prev) => prev.filter((ex) => ex.id !== id));
     }
 
     function saveWorkout() {
@@ -98,10 +100,14 @@ export default function LogWout() {
                         <div className="text-[13px] font-medium text-white">Avatar name</div>
                     </div>
 
-                    {/*coach comments*/}
-                    <div className="mt-5 pl-3 space-y-3">
-                        <div className="text-[12px] text-[#9CA3AF]">Coach comments or what not</div>
-                        <div className="text-[12px] text-[#9CA3AF]">I’ll figure it out later</div>
+                    {/* two lines under avatar */}
+                    <div className="mt-5 space-y-2 pl-3">
+                        <div className="text-[12px] text-[#9CA3AF]">
+                            Coach comments or what not
+                        </div>
+                        <div className="text-[12px] text-[#9CA3AF]">
+                            I’ll figure it out later
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,9 +135,9 @@ export default function LogWout() {
             <div className="px-5 pt-6">
                 {/* Choose exercise */}
                 <div className="text-center">
-                    <label className="text-[13px] font-medium text-[#6366F1] underline">
+                    <div className="text-[13px] font-medium text-[#6366F1] underline">
                         Choose exercise
-                    </label>
+                    </div>
 
                     <div className="mt-3 flex justify-center">
                         <select
@@ -152,44 +158,54 @@ export default function LogWout() {
                 </div>
 
                 {/* Column headers */}
-                <div className="mt-7 grid grid-cols-3 text-center text-[13px] font-medium text-[#6366F1]">
+                <div className="mt-7 grid grid-cols-[44px_1fr_1fr_44px] items-center gap-3 text-center text-[13px] font-medium text-[#6366F1]">
                     <div>Sets</div>
                     <div>Weight</div>
                     <div>Reps</div>
+                    <div></div>
                 </div>
 
                 {/* Set rows */}
                 <div className="mt-4 space-y-3">
                     {sets.map((s, idx) => (
-                        <div key={idx} className="grid grid-cols-3 items-center gap-3">
-                            {/* Set number */}
+                        <div key={idx} className="grid grid-cols-[44px_1fr_1fr_44px] items-center gap-3">
                             <div className="text-center text-[13px] font-medium text-[#6366F1]">
                                 {idx + 1}
                             </div>
 
-                            {/* Weight */}
                             <input
                                 inputMode="decimal"
                                 value={s.weight}
                                 onChange={(e) => updateSet(idx, { weight: e.target.value })}
-                                placeholder=""
-                                className="h-[44px] rounded-[14px] border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#111827] outline-none focus:border-[#6366F1] tabular-nums"
+                                className="h-[44px] w-full rounded-[14px] border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#111827] outline-none focus:border-[#6366F1] tabular-nums"
                             />
 
-                            {/* Reps */}
                             <input
                                 inputMode="numeric"
                                 value={s.reps}
                                 onChange={(e) => updateSet(idx, { reps: e.target.value })}
-                                placeholder=""
-                                className="h-[44px] rounded-[14px] border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#111827] outline-none focus:border-[#6366F1] tabular-nums"
+                                className="h-[44px] w-full rounded-[14px] border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#111827] outline-none focus:border-[#6366F1] tabular-nums"
                             />
+
+                            <button
+                                type="button"
+                                onClick={() => removeSetAt(idx)}
+                                disabled={sets.length <= 1}
+                                className={[
+                                    "h-[44px] w-[44px] rounded-[14px] text-[16px] leading-none font-medium flex items-center justify-center",
+                                    sets.length <= 1
+                                        ? "bg-[#F3F4F6] text-[#D1D5DB] cursor-not-allowed"
+                                        : "bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]",
+                                ].join(" ")}
+                            >
+                                ×
+                            </button>
                         </div>
                     ))}
                 </div>
 
-                {/* Add/Remove set links */}
-                <div className="mt-7 flex items-center justify-center gap-10">
+                {/* Add set */}
+                <div className="mt-7 flex items-center justify-center">
                     <button
                         type="button"
                         onClick={addSet}
@@ -197,21 +213,9 @@ export default function LogWout() {
                     >
                         + Add set
                     </button>
-
-                    <button
-                        type="button"
-                        onClick={removeSet}
-                        disabled={!canRemoveSet}
-                        className={[
-                            "text-[13px] font-medium",
-                            canRemoveSet ? "text-[#9CA3AF]" : "text-[#D1D5DB] cursor-not-allowed",
-                        ].join(" ")}
-                    >
-                        + Remove set
-                    </button>
                 </div>
 
-                {/* (Optional tiny hint like volume; remove if you want it identical) */}
+                {/* Current volume display */}
                 <div className="mt-3 text-center text-[12px] text-[#9CA3AF] tabular-nums">
                     {currentVolume > 0 ? `Current volume: ${currentVolume}` : "\u00A0"}
                 </div>
@@ -261,6 +265,17 @@ export default function LogWout() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Remove exercise */}
+                                <div className="mt-3 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => removeLoggedExercise(ex.id)}
+                                        className="text-[12px] font-medium text-[#9CA3AF] hover:text-[#6366F1]"
+                                    >
+                                        Remove exercise
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -283,8 +298,6 @@ export default function LogWout() {
         </div>
     );
 }
-
-/* -------- helpers -------- */
 
 function uid() {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
