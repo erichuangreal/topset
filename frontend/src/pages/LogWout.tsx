@@ -91,11 +91,17 @@ export default function LogWout() {
 
                 {/* Avatar name pill */}
                 <div className="mt-6">
-                    <div className="inline-flex items-center gap-3 rounded-full bg-[#6366F1] px-5 py-3 shadow-[0_10px_18px_rgba(99,102,241,0.20)]">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black/25">
-                            <UserIcon className="h-5 w-5 text-white" />
+                    <div className="inline-flex items-center gap-3 rounded-full bg-[#6366F1] px-5 py-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25">
+                            <UserIcon className="h-4 w-4 text-white" />
                         </div>
-                        <div className="text-[14px] font-medium text-white">Avatar name</div>
+                        <div className="text-[13px] font-medium text-white">Avatar name</div>
+                    </div>
+
+                    {/*coach comments*/}
+                    <div className="mt-5 pl-3 space-y-3">
+                        <div className="text-[12px] text-[#9CA3AF]">Coach comments or what not</div>
+                        <div className="text-[12px] text-[#9CA3AF]">I’ll figure it out later</div>
                     </div>
                 </div>
             </div>
