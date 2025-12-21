@@ -1,4 +1,3 @@
-// src/pages/LogWout.tsx
 import React, { useMemo, useState } from "react";
 
 type SetRow = { weight: string; reps: string };
@@ -16,6 +15,17 @@ const EXERCISE_LIBRARY = [
     "Leg Press",
     "Calf Raise",
 ];
+
+const STORAGE_KEY = "lifting:logwout:draft:v1";
+
+type DraftState = {
+    currentExercise: string;
+    sets: SetRow[];
+    log: LoggedExercise[];
+    savedAt: string; // saves the date, refreshes every day
+};
+
+
 
 export default function LogWout() {
     // current exercise + sets
@@ -75,21 +85,13 @@ export default function LogWout() {
     }
 
     function saveWorkout() {
-        // UI only for now
         alert(`Saved workout.\nExercises logged: ${log.length}`);
     }
 
     return (
         <div className="min-h-screen bg-[#F6F5F3] pb-24">
             <div className="px-5 pt-6">
-                {/* Top light-blue pill */}
-                <div className="h-[78px] w-full rounded-[24px] bg-[#E0E7FF]">
-                    <div className="flex h-full items-center justify-center">
-                        <span className="text-[26px] font-medium text-[#111827]">
-                            Workout Log
-                        </span>
-                    </div>
-                </div>
+                <TopPill title="Workout Log" />
 
                 {/* Avatar name pill */}
                 <div className="mt-6">
@@ -101,19 +103,15 @@ export default function LogWout() {
                     </div>
 
                     {/* two lines under avatar */}
-                    <div className="mt-5 space-y-2 pl-3">
-                        <div className="text-[12px] text-[#9CA3AF]">
-                            Coach comments or what not
-                        </div>
-                        <div className="text-[12px] text-[#9CA3AF]">
-                            I’ll figure it out later
-                        </div>
+                    <div className="mt-2 space-y-1 pl-3">
+                        <div className="text-[12px] text-[#9CA3AF]">Coach comments or what not</div>
+                        <div className="text-[12px] text-[#9CA3AF]">I’ll figure it out later</div>
                     </div>
                 </div>
             </div>
 
             {/* Light-blue section band: Current Exercise + Add exercise */}
-            <div className="mt-8 bg-[#E0E7FF]">
+            <div className="mt-3 bg-[#E0E7FF]">
                 <div className="px-5 py-4">
                     <div className="flex items-center justify-between">
                         <div className="inline-flex rounded-full bg-[#6366F1] px-5 py-2 text-[13px] font-medium text-white">
@@ -132,12 +130,10 @@ export default function LogWout() {
             </div>
 
             {/* Main input area */}
-            <div className="px-5 pt-6">
+            <div className="px-5 pt-2">
                 {/* Choose exercise */}
                 <div className="text-center">
-                    <div className="text-[13px] font-medium text-[#6366F1] underline">
-                        Choose exercise
-                    </div>
+                    <div className="text-[13px] font-medium text-[#6366F1] underline">Choose exercise</div>
 
                     <div className="mt-3 flex justify-center">
                         <select
@@ -206,11 +202,7 @@ export default function LogWout() {
 
                 {/* Add set */}
                 <div className="mt-7 flex items-center justify-center">
-                    <button
-                        type="button"
-                        onClick={addSet}
-                        className="text-[13px] font-medium text-[#6366F1]"
-                    >
+                    <button type="button" onClick={addSet} className="text-[13px] font-medium text-[#6366F1]">
                         + Add set
                     </button>
                 </div>
@@ -239,17 +231,10 @@ export default function LogWout() {
                 ) : (
                     <div className="space-y-3">
                         {log.map((ex) => (
-                            <div
-                                key={ex.id}
-                                className="rounded-[18px] border border-[#E5E7EB] bg-white px-4 py-3"
-                            >
+                            <div key={ex.id} className="rounded-[18px] border border-[#E5E7EB] bg-white px-4 py-3">
                                 <div className="flex items-center justify-between">
-                                    <div className="text-[14px] font-medium text-[#111827]">
-                                        {ex.name}
-                                    </div>
-                                    <div className="text-[12px] text-[#9CA3AF] tabular-nums">
-                                        {ex.sets.length} sets
-                                    </div>
+                                    <div className="text-[14px] font-medium text-[#111827]">{ex.name}</div>
+                                    <div className="text-[12px] text-[#9CA3AF] tabular-nums">{ex.sets.length} sets</div>
                                 </div>
 
                                 <div className="mt-2 space-y-1">
@@ -295,6 +280,16 @@ export default function LogWout() {
             </div>
 
             <div className="h-12" />
+        </div>
+    );
+}
+
+function TopPill({ title }: { title: string }) {
+    return (
+        <div className="relative h-[56px] w-full rounded-[18px] bg-[#DFE8FF]">
+            <div className="flex h-full items-center justify-center">
+                <span className="text-[22px] font-medium text-[#111827]">{title}</span>
+            </div>
         </div>
     );
 }
