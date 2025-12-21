@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type SetRow = { weight: string; reps: string };
 type LoggedExercise = { id: string; name: string; sets: SetRow[] };
@@ -57,6 +57,15 @@ export default function LogWout() {
     const [sets, setSets] = useState<SetRow[]>(draft?.sets ?? [{ weight: "", reps: "" }]);
     const [log, setLog] = useState<LoggedExercise[]>(draft?.log ?? []);
 
+    useEffect(() => {
+        saveDraft({
+            currentExercise,
+            sets,
+            log,
+            savedAt: todayKey(),
+        });
+    }, [currentExercise, sets, log]);
+
     const currentVolume = useMemo(() => {
         let v = 0;
         for (const s of sets) {
@@ -108,6 +117,7 @@ export default function LogWout() {
 
     function saveWorkout() {
         alert(`Saved workout.\nExercises logged: ${log.length}`);
+        localStorage.removeItem(STORAGE_KEY);
     }
 
     return (
