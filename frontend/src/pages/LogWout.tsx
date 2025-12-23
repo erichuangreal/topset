@@ -66,6 +66,13 @@ export default function LogWout() {
         });
     }, [currentExercise, sets, log]);
 
+    const [toast, setToast] = useState(false);
+
+    function showSavedToast() {
+        setToast(true);
+        window.setTimeout(() => setToast(false), 1800);
+    }
+
     const currentVolume = useMemo(() => {
         let v = 0;
         for (const s of sets) {
@@ -116,17 +123,25 @@ export default function LogWout() {
     }
 
     function saveWorkout() {
-        alert(`Saved workout.\nExercises logged: ${log.length}`);
+        showSavedToast();
         localStorage.removeItem(STORAGE_KEY);
     }
 
     return (
         <div className="min-h-screen bg-[#F6F5F3] pb-24">
+            {toast && (
+                <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2">
+                    <div className="rounded-full bg-[#6366F1] px-5 py-3 text-[13px] font-medium text-white shadow-[0_10px_18px_rgba(0,0,0,0.12)]">
+                        Saved workout
+                    </div>
+                </div>
+            )}
+
             <div className="px-5 pt-6">
                 <TopPill title="Workout Log" />
 
                 {/* Avatar name pill */}
-                <div className="mt-6">
+                <div className="mt-3">
                     <div className="inline-flex items-center gap-3 rounded-full bg-[#6366F1] px-5 py-2">
                         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25">
                             <UserIcon className="h-4 w-4 text-white" />
