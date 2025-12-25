@@ -67,6 +67,7 @@ export default function LogWout() {
     }, [currentExercise, sets, log]);
 
     const [toast, setToast] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     function showSavedToast() {
         setToast(true);
@@ -122,10 +123,51 @@ export default function LogWout() {
         setLog((prev) => prev.filter((ex) => ex.id !== id));
     }
 
-    function saveWorkout() {
-        showSavedToast();
-        localStorage.removeItem(STORAGE_KEY);
+    async function saveWorkout() {
+        if (saving) return;
+
+        if (log.length === 0) {
+            alert("No exercises to save.");
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const date = todayKey();
+            const exercises = [...log].reverse().map((ex) => ({
+            name: ex.name,
+            sets: ex.sets.map((s) => ({
+                weight: s.weight.trim() === "" ? null : Number(s.weight),
+                reps: s.reps.trim() === "" ? null : Number(s.reps),
+            })),
+            }));
+
+            const res = await fetch("/api/workouts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date, exercises }),
+            });
+
+            const text = await res.text();
+            console.log("saveWorkout:", res.status, text);
+
+            if (!res.ok) {
+            alert("Save failed. Check console.");
+            return;
+            }
+
+            localStorage.removeItem(STORAGE_KEY);
+            setLog([]);
+            setCurrentExercise("");
+            setSets([{ weight: "", reps: "" }]);
+
+            showSavedToast();
+        } finally {
+            setSaving(false);
+        }
     }
+
 
     return (
         <div className="min-h-screen bg-[#F6F5F3] pb-24">

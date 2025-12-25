@@ -22,6 +22,10 @@ function pickRandomLine(lines: string[]) {
     return lines[Math.floor(Math.random() * lines.length)];
 }
 
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function Home() {
     const nav = useNavigate();
     const [line, setLine] = useState("");
@@ -69,7 +73,7 @@ export default function Home() {
                 </button>
 
                 <button
-                    onClick={() => nav("/log?mode=rest")}
+                    onClick={logRestDay}
                     className="h-[46px] flex-1 rounded-full bg-[#9AA0A6] !text-[11px] font-medium text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] active:scale-[0.99]"
                 >
                     Log rest day
@@ -104,6 +108,35 @@ export default function Home() {
             <div className="h-6" />
         </div>
     );
+
+    async function logRestDay() {
+    const date = new Date().toISOString().slice(0, 10);
+
+    const res = await fetch("/api/workouts/rest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+    });
+
+    const text = await res.text();
+    console.log("restDay status:", res.status, "body:", text);
+
+    if (!res.ok) {
+        alert(`Rest day failed (${res.status}). Check console.`);
+        return;
+    }
+
+    let data: any = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (data?.ok !== true) {
+        alert("Rest day failed. Check console.");
+        return;
+    }
+
+    alert("Rest day logged");
+    }
+
 }
 
 function TopPill({ title }: { title: string }) {
