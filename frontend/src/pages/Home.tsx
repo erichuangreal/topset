@@ -1,9 +1,9 @@
-// src/pages/Home.tsx
 import { useNavigate } from "react-router-dom";
 import FlameIcon from "../assets/Subtract.svg?react";
 import { useEffect, useState } from "react";
+import { computeMood, computeTodayCoach, computeStreak, computeWeeklyHighlights, todayKey, type ApiWorkout } from "../components/insights";
 
-// encouragement lines to pick from
+// encouragement lines
 const ENCOURAGEMENT_LINES = [
     "Future you is watching — and proud.",
     "One more rep of effort. Not weight.",
@@ -25,10 +25,65 @@ function pickRandomLine(lines: string[]) {
 export default function Home() {
     const nav = useNavigate();
     const [line, setLine] = useState("");
+    const [streak, setStreak] = useState(0);
+    const [mood, setMood] = useState("meh");
+    const [weekly, setWeekly] = useState<string[]>([]);
+    const [coachLine, setCoachLine] = useState("-");
 
+    useEffect(() => {
+        (async () => {
+            const end = todayKey();
+            const start = (() => {
+                const d = new Date(end + "T00:00:00");
+                d.setDate(d.getDate() - 27);
+                return d.toISOString().slice(0, 10);
+            })();
+
+            const res = await fetch(`/api/workouts/range?start=${start}&end=${end}`);
+            const data = await res.json();
+            if (!res.ok || data?.ok === false) return;
+            const workouts: ApiWorkout[] = data.workouts ?? [];
+            setStreak(computeStreak(workouts, end));
+            setMood(computeMood(workouts, end));
+            setWeekly(computeWeeklyHighlights(workouts, end));
+
+            const rDay = await fetch(`/api/workouts?date=${end}`);
+            const jDay = await rDay.json();
+            const dayWorkouts: ApiWorkout[] = jDay.workouts ?? [];
+            setCoachLine(computeTodayCoach(dayWorkouts));
+        })();
+    }, []);
     useEffect(() => {
         setLine(pickRandomLine(ENCOURAGEMENT_LINES));
     }, []);
+
+        async function logRestDay() {
+    const date = new Date().toISOString().slice(0, 10);
+
+    const res = await fetch("/api/workouts/rest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+    });
+
+    const text = await res.text();
+    console.log("restDay status:", res.status, "body:", text);
+
+    if (!res.ok) {
+        alert(`Rest day failed (${res.status}). Check console.`);
+        return;
+    }
+
+    let data: any = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (data?.ok !== true) {
+        alert("Rest day failed. Check console.");
+        return;
+    }
+
+    alert("Rest day logged");
+    }
 
     return (
         <div className="px-5 pt-6">
@@ -41,7 +96,7 @@ export default function Home() {
 
                 <div className="flex h-10 items-center gap-2 rounded-[14px] bg-[#DFE8FF] px-4">
                     <span className="text-[20px] font-medium leading-none text-[#111827]">
-                        4
+                        {streak}
                     </span>
                     <FlameIcon className="h-5 w-5 text-[#5B63F6]" />
                 </div>
@@ -56,7 +111,7 @@ export default function Home() {
             </div>
 
             <div className="mt-5 text-center text-[18px] text-[#9CA3AF]">
-                “Today, I’m feeling ___”
+                Today, I’m feeling {mood}.
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">
@@ -69,7 +124,7 @@ export default function Home() {
                 </button>
 
                 <button
-                    onClick={() => nav("/log?mode=rest")}
+                    onClick={logRestDay}
                     className="h-[46px] flex-1 rounded-full bg-[#9AA0A6] !text-[11px] font-medium text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] active:scale-[0.99]"
                 >
                     Log rest day
@@ -87,15 +142,15 @@ export default function Home() {
                     <div className="space-y-6">
                         <HighlightRow
                             icon={<CrownIcon className="h-6 w-6 text-[#111827]" />}
-                            text="“Greatest volume day — last Friday”"
+                            text={weekly[0] ?? "“Log once this week: keep it alive”"}
                         />
                         <HighlightRow
                             icon={<TrophyIcon className="h-6 w-6 text-[#111827]" />}
-                            text="“That PR you hit on bench”"
+                            text={weekly[1] ?? "“Heaviest set: coming soon”"}
                         />
                         <HighlightRow
                             icon={<GiftIcon className="h-6 w-6 text-[#111827]" />}
-                            text="“You showed up on a tough week”"
+                            text={weekly[2] ?? "“Most consistent lift: coming soon”"}
                         />
                     </div>
                 </div>

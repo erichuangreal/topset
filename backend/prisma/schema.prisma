@@ -17,6 +17,7 @@ model Workout {
   id        BigInt   @id @default(autoincrement())
   date      DateTime @db.Date
   createdAt DateTime @default(now())
+  restDay Boolean @default(false)
 
   exercises WorkoutExercise[]
 }
