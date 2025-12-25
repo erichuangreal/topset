@@ -81,6 +81,48 @@ router.post("/rest", async (req, res) => {
   }
 });
 
+router.get("/range", async (req, res) => {
+  const start = String(req.query.start ?? "");
+  const end = String(req.query.end ?? "");
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+    return res.status(400).json({ ok: false, error: "start_end_required_YYYY-MM-DD" });
+  }
+
+  const startDt = new Date(start + "T00:00:00.000Z");
+  const endDt = new Date(end + "T23:59:59.999Z");
+
+  const workouts = await prisma.workout.findMany({
+    where: { date: { gte: startDt, lte: endDt } },
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+    include: {
+      exercises: {
+        orderBy: { order: "asc" },
+        include: { sets: { orderBy: { order: "asc" } } },
+      },
+    },
+  });
+
+  return res.json({
+    ok: true,
+    workouts: workouts.map((w) => ({
+      id: w.id.toString(),
+      date: w.date.toISOString().slice(0, 10),
+      createdAt: w.createdAt,
+      restDay: (w as any).restDay ?? false,
+      exercises: w.exercises.map((ex) => ({
+        id: ex.id.toString(),
+        name: ex.name,
+        sets: ex.sets.map((s) => ({
+          id: s.id.toString(),
+          weight: s.weight === null ? null : Number(s.weight),
+          reps: s.reps === null ? null : s.reps,
+        })),
+      })),
+    })),
+  });
+});
+
 router.get("/", async (req, res) => {
   const date = String(req.query.date ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {

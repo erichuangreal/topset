@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import type { ApiWorkout } from "../components/insights";
 
 type SetRow = { weight: string; reps: string };
 type LoggedExercise = { id: string; name: string; sets: SetRow[] };
@@ -57,6 +58,26 @@ export default function LogWout() {
     const [sets, setSets] = useState<SetRow[]>(draft?.sets ?? [{ weight: "", reps: "" }]);
     const [log, setLog] = useState<LoggedExercise[]>(draft?.log ?? []);
 
+    const [history14, setHistory14] = useState<ApiWorkout[]>([]);
+
+useEffect(() => {
+  (async () => {
+    const end = todayKey();
+    const start = (() => {
+      const d = new Date(end + "T00:00:00");
+      d.setDate(d.getDate() - 13); // 14 days including today
+      return d.toISOString().slice(0, 10);
+    })();
+
+    const res = await fetch(`/api/workouts/range?start=${start}&end=${end}`);
+    const data = await res.json();
+    if (!res.ok || data?.ok === false) return;
+
+    setHistory14((data.workouts ?? []) as ApiWorkout[]);
+  })();
+}, []);
+
+
     useEffect(() => {
         saveDraft({
             currentExercise,
@@ -83,6 +104,132 @@ export default function LogWout() {
         }
         return Math.round(v);
     }, [sets]);
+
+    const highlightOfDay = useMemo(() => {
+        if (log.length === 0 && currentVolume === 0) return "";
+        if (log.length === 0 && currentVolume > 0) return "Highlight of the day: you started. Keep it clean.";
+
+        let top: { ex: string; weight: number } | null = null;
+
+        for (const ex of log) {
+            for (const s of ex.sets) {
+            const w = Number(s.weight);
+            const r = Number(s.reps);
+            if (Number.isFinite(w) && Number.isFinite(r) && w > 0 && r > 0) {
+                if (!top || w > top.weight) top = { ex: ex.name, weight: w };
+            }
+            }
+        }
+
+        if (top) return `Highlight of the day: strong ${top.ex}.`;
+        return "Highlight of the day: solid work.";
+    }, [log, currentVolume]);
+
+    const coachLine = useMemo(() => {
+        const classify = (name: string) => {
+            const n = name.toLowerCase();
+            if (n.includes("bench") || n.includes("press")) return "push";
+            if (n.includes("row") || n.includes("pulldown")) return "pull";
+            if (n.includes("squat") || n.includes("leg press") || n.includes("calf")) return "legs";
+            if (n.includes("deadlift") || n.includes("romanian")) return "hinge";
+            return "general";
+        };
+
+        const cueFor = (exName: string) => {
+            const c = classify(exName);
+            if (c === "push") return "Shoulders back. Controlled touch. Drive straight up.";
+            if (c === "pull") return "Elbows down/back. Pause the squeeze. Don’t swing.";
+            if (c === "legs") return "Brace hard. Knees track. Controlled depth.";
+            if (c === "hinge") return "Brace first. Lats tight. No yanking.";
+            return "Smooth reps. Full range. No ego.";
+        };
+
+        const startedExercise = currentExercise.trim().length > 0;
+        const hasDraftInputs = sets.some((s) => s.weight.trim() !== "" || s.reps.trim() !== "");
+
+        // ---- early guidance (no randomness) ----
+        if (log.length === 0 && currentVolume === 0 && !startedExercise && !hasDraftInputs) {
+            return "Pick one lift. One clean set. Then decide if you want more.";
+        }
+
+        if (log.length === 0 && (startedExercise || hasDraftInputs || currentVolume > 0)) {
+            const hasWeight = sets.some((s) => s.weight.trim() !== "");
+            const hasReps = sets.some((s) => s.reps.trim() !== "");
+            if (hasWeight && !hasReps) return "Add reps, then add the exercise to the log.";
+            if (!hasWeight && hasReps) return "Add weight, then add the exercise to the log.";
+            return "Finish this exercise, then add it to the log.";
+        }
+
+        // ---- baseline from last 14 days (per exercise best weight) ----
+        const baseline = new Map<string, number>();
+        for (const w of history14) {
+            if (w.restDay) continue;
+            for (const ex of w.exercises) {
+            for (const s of ex.sets) {
+                const wt = s.weight ?? 0;
+                if (wt <= 0) continue;
+                const prev = baseline.get(ex.name) ?? 0;
+                if (wt > prev) baseline.set(ex.name, wt);
+            }
+            }
+        }
+
+        // ---- analyze today draft log ----
+        let totalSets = 0;
+        let repsSum = 0;
+        const todayTop = new Map<string, { w: number; r: number }>();
+
+        for (const ex of log) {
+            for (const s of ex.sets) {
+            const w = Number(s.weight);
+            const r = Number(s.reps);
+            if (Number.isFinite(w) && Number.isFinite(r) && w > 0 && r > 0) {
+                totalSets++;
+                repsSum += r;
+                const prev = todayTop.get(ex.name);
+                if (!prev || w > prev.w) todayTop.set(ex.name, { w, r });
+            }
+            }
+        }
+
+        if (totalSets === 0) return "Add one clean working set, then save.";
+
+        const avgReps = repsSum / totalSets;
+
+        // main lift = heaviest top set today
+        let mainEx: string | null = null;
+        let mainW = -1;
+        for (const [name, top] of todayTop.entries()) {
+            if (top.w > mainW) {
+            mainW = top.w;
+            mainEx = name;
+            }
+        }
+        if (!mainEx) return "Good work. Save it clean and recover.";
+
+        const mainTop = todayTop.get(mainEx)!;
+        const baseTop = baseline.get(mainEx) ?? 0;
+
+        const hasBaseline = baseTop > 0;
+        const ratio = hasBaseline ? mainTop.w / baseTop : 0;
+
+        // ---- deterministic ladder ----
+        if (hasBaseline && ratio >= 0.9) {
+            return `Relative heavy day on ${mainEx}. ${cueFor(mainEx)}`;
+        }
+
+        if (avgReps >= 8) {
+            return `Higher-rep day. Control the lowering. ${cueFor(mainEx)}`;
+        }
+
+        if (avgReps <= 5) {
+            return `Low-rep day. Full rest. Crisp reps. ${cueFor(mainEx)}`;
+        }
+
+        if (totalSets <= 3) return "Short session is still a win. Save it clean.";
+        if (totalSets <= 8) return "Good pace. Don’t rush reps. Stay structured.";
+        return "That’s plenty. End on a clean set and recover.";
+    }, [log, currentVolume, currentExercise, sets, history14]);
 
     function addSet() {
         setSets((prev) => [...prev, { weight: "", reps: "" }]);
@@ -193,8 +340,8 @@ export default function LogWout() {
 
                     {/* two lines under avatar */}
                     <div className="mt-2 space-y-1 pl-3">
-                        <div className="text-[12px] text-[#9CA3AF]">Coach comments or what not</div>
-                        <div className="text-[12px] text-[#9CA3AF]">I’ll figure it out later</div>
+                        <div className="text-[12px] text-[#9CA3AF]">{highlightOfDay}</div>
+                        <div className="text-[12px] text-[#9CA3AF]">{coachLine}</div>
                     </div>
                 </div>
             </div>
