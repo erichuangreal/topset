@@ -1,6 +1,8 @@
 # lifting_tracker2.0
 
-A minimalist, avatar-centric workout tracking app designed to not only allow users to log their exercises (like every other "workout tracker"), but to support the user in their training regardless of experience. Our avatar, which does not have a name currently, acts as a symbol of the user's progress. Much of the algorithm is hidden behind the UI, leaving only the highlights, coaching tips, and avatar emotions for the user to see.
+I created a workout tracking app that breaks off from the standard number-crunching app. Instead, I focused on creating a more encouraging and humanizing approach to lifting by focusing on an avatar that grows with the user's progress. It has different mood settings that is determined by how often and how much the user is training. I aimed to make this app a low-stakes environment where the user isn't swamped by numbers on the UI, but is met with a friendly avatar coach that analyzes user progression, plateaus, prs, and deload trends and provides dynamic and constructive criticism.
+
+Much of the algorithm is hidden behind the UI, leaving only the highlights, coaching tips, and avatar emotions for the user to see.
 
 1. Highlights are chosen for the day and week to make the user proud of his or her achievements.
 2. Coaching tips are unique for each and every set the user does, and I will be looking into expanding into ML-supported advice.
